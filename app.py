@@ -22,6 +22,7 @@ DIAS = [
 # Es el ciclo que aparece en el Excel de ejemplo.
 CICLO_12X24 = ["DIA", "NOCHE", "DESCANSO"]
 LOGO_URL = "https://seguridadtotal.mx/wp-content/uploads/2026/04/STALOGO-1.png"
+PAGE_ICON = "assets/logo.png"
 
 
 class Dinic:
@@ -1323,7 +1324,7 @@ def pintar_turnos(tabla: pd.DataFrame):
 
 st.set_page_config(
     page_title="Seguridad Total | Roles",
-    page_icon="🛡️",
+    page_icon=PAGE_ICON,
     layout="wide",
 )
 
