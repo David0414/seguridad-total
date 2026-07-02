@@ -90,6 +90,15 @@ def calcular_horas(turnos: list[str], horas_turno: int) -> int:
     return sum(turno in ("DIA", "NOCHE") for turno in turnos) * horas_turno
 
 
+def calcular_max_turnos_guardia(horas_turno: int, horas_objetivo: int) -> int:
+    turnos_por_objetivo = max(1, horas_objetivo // horas_turno)
+
+    if horas_turno <= 12:
+        turnos_por_objetivo = max(5, turnos_por_objetivo)
+
+    return max(1, min(7, turnos_por_objetivo))
+
+
 def cumple_descansos(turnos: list[str], max_descansos: int = 2) -> bool:
     consecutivos = 0
 
@@ -730,25 +739,36 @@ def generar_roles(
 
         return agrupar_roles_por_patron(roles)
 
-    oficiales_dia, numero_oficial = crear_oficiales_fijos(
-        necesidades=faltantes_dia,
-        tipo_turno="DIA",
-        nombre_grupo="TURNO DIA",
-        nombre_puesto="OFICIAL DIA",
-        max_turnos_guardia=max_turnos_guardia,
-        numero_inicial=numero_oficial,
-    )
-    roles.extend(oficiales_dia)
+    if any(faltantes_dia) and any(faltantes_noche):
+        oficiales_mixtos, numero_oficial = crear_oficiales_mixtos(
+            necesidades_dia=faltantes_dia,
+            necesidades_noche=faltantes_noche,
+            nombre_grupo="ROL MIXTO",
+            nombre_puesto="OFICIAL MIXTO",
+            max_turnos_guardia=max_turnos_guardia,
+            numero_inicial=numero_oficial,
+        )
+        roles.extend(oficiales_mixtos)
+    else:
+        oficiales_dia, numero_oficial = crear_oficiales_fijos(
+            necesidades=faltantes_dia,
+            tipo_turno="DIA",
+            nombre_grupo="TURNO DIA",
+            nombre_puesto="OFICIAL DIA",
+            max_turnos_guardia=max_turnos_guardia,
+            numero_inicial=numero_oficial,
+        )
+        roles.extend(oficiales_dia)
 
-    oficiales_noche, numero_oficial = crear_oficiales_fijos(
-        necesidades=faltantes_noche,
-        tipo_turno="NOCHE",
-        nombre_grupo="TURNO NOCHE",
-        nombre_puesto="OFICIAL NOCHE",
-        max_turnos_guardia=max_turnos_guardia,
-        numero_inicial=numero_oficial,
-    )
-    roles.extend(oficiales_noche)
+        oficiales_noche, numero_oficial = crear_oficiales_fijos(
+            necesidades=faltantes_noche,
+            tipo_turno="NOCHE",
+            nombre_grupo="TURNO NOCHE",
+            nombre_puesto="OFICIAL NOCHE",
+            max_turnos_guardia=max_turnos_guardia,
+            numero_inicial=numero_oficial,
+        )
+        roles.extend(oficiales_noche)
 
     return agrupar_roles_por_patron(roles)
 
@@ -1345,7 +1365,7 @@ dia_fijo = False
 if tipo_turnos in ("Día y noche", "Solo día"):
     dia_fijo = st.checkbox(
         "Personal de día fijo",
-        value=True,
+        value=False,
         help=(
             "Cubre lunes a viernes con oficiales fijos 5x2. "
             "Los fines de semana o aumentos se acomodan aparte."
@@ -1408,9 +1428,13 @@ with columna_2:
         value=48,
     )
 
-max_turnos_guardia = 5 if int(horas_turno) <= 12 else max(
-    1,
-    min(7, int(horas_objetivo) // int(horas_turno)),
+max_turnos_guardia = calcular_max_turnos_guardia(
+    int(horas_turno),
+    int(horas_objetivo),
+)
+st.caption(
+    f"Cálculo operativo: hasta {max_turnos_guardia} turnos por guardia "
+    f"({max_turnos_guardia * int(horas_turno)} horas semanales)."
 )
 
 try:
